@@ -3,6 +3,8 @@
 // the south, and a beach + sea along the east edge. All art is drawn in
 // code by game.js; this module only produces geometry and answers
 // collision / road queries.
+// Units are world pixels: x grows east toward the beach and the sea,
+// y grows south toward the docks.
 
 export const BLOCK = 220;          // block size (px)
 export const ROAD = 64;            // road width (px)

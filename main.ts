@@ -1,41 +1,82 @@
-// A working gta6-01 entry (Node 22, standard library only): the game is this directory's
-// game/ folder, plain static files a desktop browser loads offline (game/index.html and its ES
-// modules, no library and no network request), and the program hands it in. It copies game/ and
-// screenshots/ from beside this file to /output and writes /output/dossier.json, the summary the
-// judge reads, with the vendored make.fun library. Only the plumbing, not an open world: Block
-// Dodger, a plain 2D canvas game where a paddle dodges falling blocks and catches coins, with a
-// title screen, score, lives and levels, game over and restart, flat colours and no sound. Build
-// your own open-world crime game in its place (three.js or any library you vendor under game/),
-// put your 3 or 4 PNG or JPEG screenshots in screenshots/ (the first by name is the cover) and run it.
+// Port Solano: Sunset Takeover — hand-in program for the make.fun gta6-01
+// bounty ("Make GTA 6").
 //
-// Serve it locally with `node serve.ts`, then open http://localhost:8080.
-// Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// Running this file delivers the entry. It does three things, in order:
+//
+//   1. Copies the playable game (game/, plain static files) from this
+//      repository into the output directory.
+//   2. Copies the screenshots (screenshots/) alongside it.
+//   3. Builds the entry dossier with the vendored make.fun library and
+//      writes the exact bytes it returns to dossier.json in the output
+//      directory. The dossier has to come out of buildDossier itself —
+//      the scorer rebuilds it and compares byte for byte, so nothing here
+//      re-implements or post-processes it.
+//
+// The output directory is /output, or the folder named by the
+// MAKEFUN_OUTPUT_DIR environment variable when that is set.
 
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { cpSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
 
-const here = fileURLToPath(new URL('.', import.meta.url));
-const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+// The gta6-01 gate limits, passed to buildDossier so the dossier is made
+// under the same caps the scorer enforces: the dossier text at most
+// 160 KiB, 3–4 screenshots of at most 256 KiB each, and the game tree at
+// most 993 entries / 48 MiB with no path over 1,000 bytes.
+const GATE_CAPS = {
+  text_max_bytes: 163_840,
+  screenshots: { max: 4, max_bytes: 256 * 1024 },
+  game_max_files: 993,
+  game_max_bytes: 48 * 1024 * 1024,
+  game_path_max_bytes: 1_000,
+};
 
-mkdirSync(out, { recursive: true });
-cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });
-mkdirSync(join(out, 'screenshots'), { recursive: true });
-if (existsSync(join(here, 'screenshots'))) cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
+// This file sits at the repository root, so its folder is the entry dir.
+const ENTRY_DIR = dirname(fileURLToPath(import.meta.url));
+const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-// The scorer's own caps (reference/gate.json): only text_max_bytes shapes the bytes; the others refuse an entry the
-// scorer would refuse (more than 4 screenshots or one over 256 KiB; more than 993 files in game/ or 48 MiB of game
-// files, in all, or a path under game/ over 1000 bytes: game/ counts beside /output's own 1000-entry cap, its
-// screenshots/ and dossier.json).
-writeFileSync(
-  join(out, 'dossier.json'),
-  buildDossier(out, {
-    text_max_bytes: 163840,
-    screenshots: { max: 4, max_bytes: 262144 },
-    game_max_files: 993,
-    game_max_bytes: 50331648,
-    game_path_max_bytes: 1000,
-  }),
-);
+function note(message: string): void {
+  console.log(`[main] ${message}`);
+}
+
+function fail(message: string): never {
+  throw new Error(`[main] ${message}`);
+}
+
+// Copy one top-level folder of the entry into the output directory,
+// refusing to go ahead when the folder is not there to copy.
+function deliverFolder(name: string): void {
+  const from = join(ENTRY_DIR, name);
+  if (!existsSync(from) || !statSync(from).isDirectory()) {
+    fail(`expected a ${name}/ directory in ${ENTRY_DIR}`);
+  }
+  const to = join(OUTPUT_DIR, name);
+  cpSync(from, to, { recursive: true, force: true });
+  note(`copied ${name}/ -> ${to}`);
+}
+
+function main(): void {
+  note(`entry:  ${ENTRY_DIR}`);
+  note(`output: ${OUTPUT_DIR}`);
+  mkdirSync(OUTPUT_DIR, { recursive: true });
+
+  deliverFolder('game');
+  deliverFolder('screenshots');
+
+  // The dossier describes the entry as it lives in this repository; the
+  // copies above are byte-identical, so building from here is building
+  // from what was just delivered.
+  const dossier = buildDossier(ENTRY_DIR, GATE_CAPS);
+  const dossierPath = join(OUTPUT_DIR, 'dossier.json');
+  writeFileSync(dossierPath, dossier);
+  note(`wrote ${dossierPath} (${dossier.byteLength} bytes)`);
+  note('done');
+}
+
+try {
+  main();
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exitCode = 1;
+}

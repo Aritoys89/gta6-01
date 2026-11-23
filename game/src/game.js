@@ -2,6 +2,8 @@
 // Rio Vane, a broke wheelman, takes five jobs from fixer Sol Vega across a
 // sunset coastal city: steal cars, run packages, dodge the law, and pull off
 // the Sunset Takeover. Vanilla JS + canvas + WebAudio, no assets, no network.
+// This file holds the whole interactive game — rendering, input, entities,
+// missions and the main loop; world.js answers geometry, audio.js makes sound.
 
 import {
   buildWorld, makeRng, collideCircle, losBlocked, nearestRoadPoint,

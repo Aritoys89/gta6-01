@@ -2,6 +2,8 @@
 // engine hum, police siren, punches, crashes, pickups and jingles.
 // No audio files, no network. The context is created lazily on the first
 // user gesture so the game can also load silently for screenshots.
+// Muting only rides the master gain to zero, so a voice already playing
+// fades out instead of cutting off dead.
 
 export class AudioSys {
   constructor() {

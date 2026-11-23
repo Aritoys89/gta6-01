@@ -10,6 +10,10 @@ characters, vehicles, story, art and music are all original and generated in
 code: every sprite is drawn on a canvas and every sound is synthesized with
 WebAudio.
 
+The `main.ts` at the repository root is the make.fun hand-in program: run it
+and it copies `game/` and `screenshots/` into the output directory and writes
+the entry's `dossier.json` there.
+
 **Port Solano** is a sunset coastal city — 7×7 blocks of streets, a casino
 strip in the north, working docks in the south, and a beach and sea along the
 east edge. You are **Rio Vane**, a broke wheelman. Fixer **Sol Vega** has five

@@ -16,6 +16,8 @@
 </head>
 <body>
 <canvas id="game" width="1280" height="720"></canvas>
+<!-- The whole game is the ES module ./src/game.js and the world.js and
+     audio.js modules it imports. No build step, nothing is fetched. -->
 <script type="module" src="./src/game.js"></script>
 </body>
 </html>
